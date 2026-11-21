@@ -1,9 +1,6 @@
 ﻿using Calm.WeatherMonitor.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-using System;
-using System.Collections.Generic;
-using System.Text;
+
 
 
 namespace Calm.WeatherMonitor.Data;

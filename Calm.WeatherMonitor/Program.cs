@@ -20,5 +20,3 @@ using var db = new WeatherDbContext(options);
 
 Console.WriteLine("Database connection established.");
 
-var menu = new MenuService();
-menu.Run();
