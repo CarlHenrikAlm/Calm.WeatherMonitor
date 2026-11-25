@@ -1,22 +1,45 @@
 ﻿using Calm.WeatherMonitor.Data;
+using Calm.WeatherMonitor.Services;
+using Calm.WeatherMonitor.Services.FileImport;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
+using ApplicationMenu =
+    Calm.WeatherMonitor.Classes.Menu.Menu;
 
-
-var Configuration = new ConfigurationBuilder()
+IConfiguration configuration =
+    new ConfigurationBuilder()
         .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json")
-    .Build();
+        .AddJsonFile(
+            "appsettings.json",
+            optional: false,
+            reloadOnChange: false)
+        .Build();
 
-var connectionString = 
-    Configuration.GetConnectionString("DefaultConnection");
+string connectionString =
+    configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' was not found.");
 
-var options = new DbContextOptionsBuilder<WeatherDbContext>()
-    .UseSqlServer(connectionString)
-    .Options;
+var optionsBuilder =
+    new DbContextOptionsBuilder<WeatherDbContext>();
 
-using var db = new WeatherDbContext(options);
+optionsBuilder.UseSqlServer(connectionString);
 
-Console.WriteLine("Database connection established.");
+var databaseStatusService =
+    new DatabaseStatusService(
+        optionsBuilder.Options);
 
+var badDataLogger =
+    new BadDataLogger();
+
+var fileImportService =
+    new FileImportService(
+        optionsBuilder.Options,
+        badDataLogger);
+
+var menu =
+    new ApplicationMenu(
+        databaseStatusService,
+        fileImportService);
+
+await menu.RunAsync();

@@ -8,8 +8,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="DataFiles\weather_data.csv" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="DataFiles\weather_data.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Helpers\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
   <ItemGroup>

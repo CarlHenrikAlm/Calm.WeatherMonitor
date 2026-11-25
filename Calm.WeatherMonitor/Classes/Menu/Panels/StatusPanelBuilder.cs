@@ -1,5 +1,7 @@
 ﻿using Calm.WeatherMonitor.Classes.Menu.Factory;
+using Calm.WeatherMonitor.Classes.Menu.States;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace Calm.WeatherMonitor.Classes.Menu.Panels;
 
@@ -9,7 +11,8 @@ public static class StatusPanelBuilder
     {
         ArgumentNullException.ThrowIfNull(state);
 
-        string currentScreen = Markup.Escape(state.CurrentScreen);
+        string currentScreen =
+            Markup.Escape(state.CurrentScreen);
 
         var grid = new Grid()
             .AddColumn(new GridColumn().NoWrap())
@@ -21,15 +24,32 @@ public static class StatusPanelBuilder
 
         grid.AddRow(
             new Markup("[grey]Database[/]"),
-            new Markup("[yellow]Not checked[/]"));
+            CreateDatabaseStatus(state.DatabaseStatus));
 
         grid.AddRow(
             new Markup("[grey]Current screen[/]"),
-            new Markup($"[deepskyblue1]{currentScreen}[/]"));
+            new Markup(
+                $"[deepskyblue1]{currentScreen}[/]"));
 
         return PanelFactory.Create(
             "SYSTEM STATUS",
             grid,
             Color.Green);
+    }
+
+    private static IRenderable CreateDatabaseStatus(
+        DatabaseConnectionStatus status)
+    {
+        return status switch
+        {
+            DatabaseConnectionStatus.Connected =>
+                new Markup("[green]Connected[/]"),
+
+            DatabaseConnectionStatus.Unavailable =>
+                new Markup("[red]Unavailable[/]"),
+
+            _ =>
+                new Markup("[yellow]Not checked[/]")
+        };
     }
 }

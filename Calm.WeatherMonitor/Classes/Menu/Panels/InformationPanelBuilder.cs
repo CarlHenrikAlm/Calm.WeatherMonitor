@@ -1,4 +1,5 @@
 ﻿using Calm.WeatherMonitor.Classes.Menu.Factory;
+using Calm.WeatherMonitor.Classes.Menu.States;
 using Spectre.Console;
 
 namespace Calm.WeatherMonitor.Classes.Menu.Panels;
@@ -9,8 +10,13 @@ public static class InformationPanelBuilder
     {
         ArgumentNullException.ThrowIfNull(state);
 
-        (string heading, string description) =
+        (string heading, string defaultDescription) =
             GetInformation(state.Mode);
+
+        string description =
+            string.IsNullOrWhiteSpace(state.InformationMessage)
+                ? defaultDescription
+                : state.InformationMessage;
 
         var content = new Rows(
             new Markup($"[bold deepskyblue1]{Markup.Escape(heading)}[/]"),
