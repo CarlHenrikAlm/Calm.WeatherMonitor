@@ -1,5 +1,6 @@
 ﻿using Calm.WeatherMonitor.Data;
 using Calm.WeatherMonitor.Services;
+using Calm.WeatherMonitor.Services.Api;
 using Calm.WeatherMonitor.Services.FileImport;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -36,6 +37,17 @@ var fileImportService =
     new FileImportService(
         optionsBuilder.Options,
         badDataLogger);
+
+var httpClient = new HttpClient
+{
+    BaseAddress = new Uri(
+        "https://api.open-meteo.com/")
+};
+
+var weatherApiService =
+    new WeatherApiService(
+        httpClient,
+        optionsBuilder.Options);
 
 var menu =
     new ApplicationMenu(
