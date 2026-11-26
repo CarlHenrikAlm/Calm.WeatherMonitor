@@ -2,6 +2,7 @@
 using Calm.WeatherMonitor.Classes.Menu.States;
 using Calm.WeatherMonitor.Models.Results;
 using Calm.WeatherMonitor.Services;
+using Calm.WeatherMonitor.Services.Api;
 using Calm.WeatherMonitor.Services.FileImport;
 using Microsoft.EntityFrameworkCore;
 using Spectre.Console;
@@ -15,21 +16,27 @@ public sealed class Menu
     private readonly MenuState _state;
     private readonly DatabaseStatusService _databaseStatusService;
     private readonly FileImportService _fileImportService;
+    private readonly WeatherApiService _weatherApiService;
 
     private bool _isRunning = true;
 
     public Menu(
         DatabaseStatusService databaseStatusService,
-        FileImportService fileImportService)
+        FileImportService fileImportService,
+        WeatherApiService weatherApiService)
     {
         ArgumentNullException.ThrowIfNull(
             databaseStatusService);
 
         ArgumentNullException.ThrowIfNull(
             fileImportService);
+        
+        ArgumentNullException.ThrowIfNull(
+            weatherApiService);
 
         _databaseStatusService = databaseStatusService;
         _fileImportService = fileImportService;
+        _weatherApiService = weatherApiService; 
 
         _state = new MenuState();
 
@@ -124,10 +131,7 @@ public sealed class Menu
                 break;
 
             case 1:
-                SetMode(
-                    MenuMode.ApiImport,
-                    "API Import",
-                    "Live API import selected.");
+                await ImportApiDataAsync();
                 break;
 
             case 2:
@@ -197,6 +201,79 @@ public sealed class Menu
                 "An unexpected error occurred during the import.");
         }
     }
+
+    private async Task ImportApiDataAsync()
+    {
+        _state.Mode = MenuMode.ApiImport;
+        _state.CurrentScreen = "API Import";
+        _state.InformationMessage =
+            "Fetching current weather data from Open-Meteo...";
+
+        Render();
+
+        try
+        {
+            ApiImportResult result =
+                await _weatherApiService.FetchAndSaveAsync();
+
+            string saveStatus = result.WasSaved
+                ? "The measurement was saved to the database."
+                : "The measurement already exists and was not saved again.";
+
+            _state.InformationMessage =
+                $"Live weather data received.{Environment.NewLine}" +
+                Environment.NewLine +
+                $"Station:     {result.StationName}{Environment.NewLine}" +
+                $"Timestamp:   {result.Timestamp:yyyy-MM-dd HH:mm}{Environment.NewLine}" +
+                $"Temperature: {result.Temperature:F1} °C{Environment.NewLine}" +
+                $"Humidity:    {result.Humidity:F1} %{Environment.NewLine}" +
+                Environment.NewLine +
+                saveStatus;
+
+            string logEntry = result.WasSaved
+                ? $"API measurement saved for {result.StationName}."
+                : $"API measurement skipped as duplicate for {result.StationName}.";
+
+            _state.LogEntries.Add(logEntry);
+        }
+        catch (TaskCanceledException exception)
+            when (exception.InnerException is TimeoutException)
+        {
+            SetApiError(
+                "The weather API request timed out.");
+        }
+        catch (HttpRequestException)
+        {
+            SetApiError(
+                "The weather API could not be reached.");
+        }
+        catch (InvalidDataException exception)
+        {
+            SetApiError(exception.Message);
+        }
+        catch (DbUpdateException)
+        {
+            SetApiError(
+                "The live weather measurement could not be saved.");
+        }
+        catch (Exception)
+        {
+            SetApiError(
+                "An unexpected error occurred while fetching live weather data.");
+        }
+    }
+
+    private void SetApiError(string message)
+    {
+        _state.InformationMessage =
+            $"API import failed.{Environment.NewLine}" +
+            Environment.NewLine +
+            message;
+
+        _state.LogEntries.Add(
+            $"API import failed: {message}");
+    }
+
 
     private void SetImportError(string message)
     {

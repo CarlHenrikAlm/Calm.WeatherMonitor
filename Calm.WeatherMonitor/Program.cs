@@ -38,10 +38,12 @@ var fileImportService =
         optionsBuilder.Options,
         badDataLogger);
 
-var httpClient = new HttpClient
+using var httpClient = new HttpClient
 {
     BaseAddress = new Uri(
-        "https://api.open-meteo.com/")
+        "https://api.open-meteo.com/"),
+
+    Timeout = TimeSpan.FromSeconds(15)
 };
 
 var weatherApiService =
@@ -52,6 +54,7 @@ var weatherApiService =
 var menu =
     new ApplicationMenu(
         databaseStatusService,
-        fileImportService);
+        fileImportService,
+        weatherApiService);
 
 await menu.RunAsync();
