@@ -1,4 +1,7 @@
-﻿namespace Calm.WeatherMonitor.Classes.Menu.States;
+﻿using Calm.WeatherMonitor.Models.Results;
+
+namespace Calm.WeatherMonitor.Classes.Menu.States;
+
 
 public class MenuState
 {
@@ -14,6 +17,17 @@ public class MenuState
 
     public DatabaseConnectionStatus DatabaseStatus { get; set; }
          = DatabaseConnectionStatus.NotChecked;
+
+    public StationStatisticsResult? StatisticsResult { get; set; }
+
+    public int StatisticsPageIndex { get; set; }
+
+    public IReadOnlyList<string> StationNames { get; set; }
+    = [];
+
+    public int SelectedStationIndex { get; set; }
+
+    public bool IsSelectingStation { get; set; }
 
     public List<string> LogEntries { get; } = [];
 

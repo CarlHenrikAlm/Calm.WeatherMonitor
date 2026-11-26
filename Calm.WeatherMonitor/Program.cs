@@ -1,4 +1,5 @@
-﻿using Calm.WeatherMonitor.Data;
+﻿using Calm.WeatherMonitor.Services.Statistics;
+using Calm.WeatherMonitor.Data;
 using Calm.WeatherMonitor.Services;
 using Calm.WeatherMonitor.Services.Api;
 using Calm.WeatherMonitor.Services.FileImport;
@@ -51,10 +52,15 @@ var weatherApiService =
         httpClient,
         optionsBuilder.Options);
 
+var weatherStatisticsService =
+    new WeatherStatisticsService(
+        optionsBuilder.Options);
+
 var menu =
     new ApplicationMenu(
         databaseStatusService,
         fileImportService,
-        weatherApiService);
+        weatherApiService,
+        weatherStatisticsService);
 
 await menu.RunAsync();

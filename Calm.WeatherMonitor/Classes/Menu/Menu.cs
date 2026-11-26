@@ -4,6 +4,7 @@ using Calm.WeatherMonitor.Models.Results;
 using Calm.WeatherMonitor.Services;
 using Calm.WeatherMonitor.Services.Api;
 using Calm.WeatherMonitor.Services.FileImport;
+using Calm.WeatherMonitor.Services.Statistics;
 using Microsoft.EntityFrameworkCore;
 using Spectre.Console;
 
@@ -17,13 +18,15 @@ public sealed class Menu
     private readonly DatabaseStatusService _databaseStatusService;
     private readonly FileImportService _fileImportService;
     private readonly WeatherApiService _weatherApiService;
+    private readonly WeatherStatisticsService _weatherStatisticsService;
 
     private bool _isRunning = true;
 
     public Menu(
         DatabaseStatusService databaseStatusService,
         FileImportService fileImportService,
-        WeatherApiService weatherApiService)
+        WeatherApiService weatherApiService,
+        WeatherStatisticsService weatherStatisticsService)
     {
         ArgumentNullException.ThrowIfNull(
             databaseStatusService);
@@ -33,10 +36,14 @@ public sealed class Menu
         
         ArgumentNullException.ThrowIfNull(
             weatherApiService);
+        
+        ArgumentNullException.ThrowIfNull(
+            weatherStatisticsService);
 
         _databaseStatusService = databaseStatusService;
         _fileImportService = fileImportService;
-        _weatherApiService = weatherApiService; 
+        _weatherApiService = weatherApiService;
+        _weatherStatisticsService = weatherStatisticsService;
 
         _state = new MenuState();
 
@@ -88,6 +95,20 @@ public sealed class Menu
 
     private async Task HandleKeyAsync(ConsoleKey key)
     {
+        if (_state.IsSelectingStation)
+        {
+            await HandleStationSelectionKeyAsync(key);
+
+            return;
+        }
+
+        if (_state.StatisticsResult is not null)
+        {
+            await HandleStatisticsKeyAsync(key);
+
+            return;
+        }
+
         switch (key)
         {
             case ConsoleKey.UpArrow:
@@ -108,6 +129,135 @@ public sealed class Menu
         }
     }
 
+    private async Task HandleStationSelectionKeyAsync(
+    ConsoleKey key)
+    {
+        switch (key)
+        {
+            case ConsoleKey.UpArrow:
+                MoveStationSelectionUp();
+                break;
+
+            case ConsoleKey.DownArrow:
+                MoveStationSelectionDown();
+                break;
+
+            case ConsoleKey.Enter:
+                await LoadSelectedStationStatisticsAsync();
+                break;
+
+            case ConsoleKey.Escape:
+                ReturnToMainMenu();
+                break;
+        }
+    }
+
+    private async Task LoadSelectedStationStatisticsAsync()
+    {
+        if (_state.StationNames.Count == 0)
+        {
+            SetStatisticsError(
+                "No weather station is available.");
+
+            return;
+        }
+
+        string selectedStation =
+            _state.StationNames[
+                _state.SelectedStationIndex];
+
+        _state.IsSelectingStation = false;
+        _state.InformationMessage =
+            $"Loading statistics for " +
+            $"{selectedStation}...";
+
+        Render();
+
+        try
+        {
+            StationStatisticsResult? statistics =
+                await _weatherStatisticsService
+                    .GetStatisticsAsync(
+                        selectedStation);
+
+            if (statistics is null)
+            {
+                SetStatisticsError(
+                    "No measurements were found for " +
+                    "the selected station.");
+
+                return;
+            }
+
+            _state.StatisticsResult = statistics;
+            _state.StatisticsPageIndex = 0;
+            _state.InformationMessage = null;
+
+            _state.LogEntries.Add(
+                $"Statistics loaded for " +
+                $"{selectedStation}: " +
+                $"{statistics.MeasurementCount} " +
+                "measurements.");
+        }
+        catch (Exception)
+        {
+            SetStatisticsError(
+                "The weather statistics could not be loaded.");
+        }
+    }
+
+    private async Task HandleStatisticsKeyAsync(
+    ConsoleKey key)
+    {
+        switch (key)
+        {
+            case ConsoleKey.LeftArrow:
+                MoveStatisticsPage(-1);
+                break;
+
+            case ConsoleKey.RightArrow:
+                MoveStatisticsPage(1);
+                break;
+
+            case ConsoleKey.Enter:
+                _state.StatisticsResult = null;
+                _state.StatisticsPageIndex = 0;
+                _state.IsSelectingStation = true;
+                break;
+
+            case ConsoleKey.Escape:
+                ReturnToMainMenu();
+                break;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private void MoveStatisticsPage(int direction)
+    {
+        StationStatisticsResult? statistics =
+            _state.StatisticsResult;
+
+        if (statistics is null)
+        {
+            return;
+        }
+
+        const int measurementsPerPage = 8;
+
+        int pageCount = Math.Max(
+            1,
+            (int)Math.Ceiling(
+                statistics.MeasurementCount
+                / (double)measurementsPerPage));
+
+        _state.StatisticsPageIndex =
+            Math.Clamp(
+                _state.StatisticsPageIndex + direction,
+                0,
+                pageCount - 1);
+    }
+
     private void MoveSelectionUp()
     {
         _state.SelectedIndex =
@@ -120,6 +270,31 @@ public sealed class Menu
         _state.SelectedIndex =
             (_state.SelectedIndex + 1)
             % MenuItemCount;
+    }
+
+    private void MoveStationSelectionUp()
+    {
+        if (_state.StationNames.Count == 0)
+        {
+            return;
+        }
+
+        _state.SelectedStationIndex =
+            (_state.SelectedStationIndex - 1
+                + _state.StationNames.Count)
+            % _state.StationNames.Count;
+    }
+
+    private void MoveStationSelectionDown()
+    {
+        if (_state.StationNames.Count == 0)
+        {
+            return;
+        }
+
+        _state.SelectedStationIndex =
+            (_state.SelectedStationIndex + 1)
+            % _state.StationNames.Count;
     }
 
     private async Task SelectCurrentItemAsync()
@@ -135,10 +310,7 @@ public sealed class Menu
                 break;
 
             case 2:
-                SetMode(
-                    MenuMode.Statistics,
-                    "Statistics",
-                    "Weather statistics selected.");
+                await ShowStatisticsAsync();
                 break;
 
             case 3:
@@ -261,6 +433,80 @@ public sealed class Menu
             SetApiError(
                 "An unexpected error occurred while fetching live weather data.");
         }
+    }
+
+    private async Task ShowStatisticsAsync()
+    {
+        _state.Mode = MenuMode.Statistics;
+        _state.CurrentScreen = "Statistics";
+        _state.InformationMessage =
+            "Loading weather stations...";
+        _state.StatisticsResult = null;
+        _state.StatisticsPageIndex = 0;
+        _state.StationNames = [];
+        _state.SelectedStationIndex = 0;
+        _state.IsSelectingStation = false;
+
+        Render();
+
+        try
+        {
+            IReadOnlyList<string> stationNames =
+                await _weatherStatisticsService
+                    .GetStationNamesAsync();
+
+            if (stationNames.Count == 0)
+            {
+                SetStatisticsError(
+                    "No weather stations are stored " +
+                    "in the database.");
+
+                return;
+            }
+
+            _state.StationNames = stationNames;
+            _state.SelectedStationIndex = 0;
+            _state.IsSelectingStation = true;
+            _state.InformationMessage = null;
+
+            _state.LogEntries.Add(
+                $"{stationNames.Count} weather stations loaded.");
+        }
+        catch (Exception)
+        {
+            SetStatisticsError(
+                "The weather stations could not be loaded.");
+        }
+    }
+
+    private void SetStatisticsError(string message)
+    {
+        _state.StatisticsResult = null;
+        _state.StatisticsPageIndex = 0;
+        _state.StationNames = [];
+        _state.SelectedStationIndex = 0;
+        _state.IsSelectingStation = false;
+
+        _state.InformationMessage =
+            $"Statistics unavailable." +
+            Environment.NewLine +
+            Environment.NewLine +
+            message;
+
+        _state.LogEntries.Add(
+            $"Statistics failed: {message}");
+    }
+
+    private void ReturnToMainMenu()
+    {
+        _state.Mode = MenuMode.MainMenu;
+        _state.CurrentScreen = "Home";
+        _state.InformationMessage = null;
+        _state.StatisticsResult = null;
+        _state.StatisticsPageIndex = 0;
+        _state.StationNames = [];
+        _state.SelectedStationIndex = 0;
+        _state.IsSelectingStation = false;
     }
 
     private void SetApiError(string message)
