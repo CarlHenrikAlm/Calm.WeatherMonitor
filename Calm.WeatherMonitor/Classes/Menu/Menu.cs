@@ -70,18 +70,28 @@ public sealed class Menu
 
     private async Task CheckDatabaseConnectionAsync()
     {
-        bool canConnect =
-            await _databaseStatusService.CanConnectAsync();
+        try
+        {
+            bool canConnect =
+                await _databaseStatusService.CanConnectAsync();
 
-        _state.DatabaseStatus = canConnect
-            ? DatabaseConnectionStatus.Connected
-            : DatabaseConnectionStatus.Unavailable;
+            _state.DatabaseStatus = canConnect
+                ? DatabaseConnectionStatus.Connected
+                : DatabaseConnectionStatus.Unavailable;
 
-        string logEntry = canConnect
-            ? "Database connection established."
-            : "Database connection unavailable.";
+            string logEntry = canConnect
+                ? "Database connection established."
+                : "Database connection unavailable.";
 
-        _state.LogEntries.Add(logEntry);
+            _state.LogEntries.Add(logEntry);
+        }
+        catch (Exception)
+        {
+            _state.DatabaseStatus =
+                DatabaseConnectionStatus.Unavailable;
+            _state.LogEntries.Add(
+                "Database connection check failed.");
+        }
     }
 
     private void Render()
