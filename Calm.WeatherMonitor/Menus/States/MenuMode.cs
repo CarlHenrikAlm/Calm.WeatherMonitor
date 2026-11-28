@@ -1,4 +1,4 @@
-﻿namespace Calm.WeatherMonitor.Classes.Menu.States;
+﻿namespace Calm.WeatherMonitor.App.Menus.States;
 
 
 

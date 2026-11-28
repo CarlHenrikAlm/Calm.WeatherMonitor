@@ -1,8 +1,8 @@
-﻿using Calm.WeatherMonitor.Classes.Menu.Panels;
-using Calm.WeatherMonitor.Classes.Menu.States;
+﻿using Calm.WeatherMonitor.App.Menus.States;
+using Calm.WeatherMonitor.App.Views.Panels;
 using Spectre.Console;
 
-namespace Calm.WeatherMonitor.Classes.Menu.Layouts;
+namespace Calm.WeatherMonitor.App.Views.Layouts;
 
 public static class DashboardLayout
 {

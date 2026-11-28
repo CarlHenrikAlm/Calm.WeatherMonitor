@@ -1,9 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Calm.WeatherMonitor.Core.Entities;
+﻿using Calm.WeatherMonitor.Core.Entities;
 using Calm.WeatherMonitor.Core.Results;
 using Calm.WeatherMonitor.Core.Interfaces;
+using Calm.WeatherMonitor.Core.Exceptions;
 using Calm.WeatherMonitor.Services.Data;
 using Calm.WeatherMonitor.Services.Logging;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
+
 
 namespace Calm.WeatherMonitor.Services.FileImport;
 
@@ -86,11 +89,20 @@ public sealed class FileImportService : IFileImportService
 
         if (validDataPoints.Count > 0)
         {
-            await dbContext.WeatherDataPoints.AddRangeAsync(
-                validDataPoints);
+            try
+            {
+                await dbContext.WeatherDataPoints.AddRangeAsync(
+                    validDataPoints);
 
-            result.ImportedRows =
-                await dbContext.SaveChangesAsync();
+                result.ImportedRows =
+                    await dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception)
+            { 
+                throw new ServiceOperationException(
+                    "The validatet weather data could not be saved.",
+                    exception);
+            }
         }
 
         await _badDataLogger.WriteRejectedLinesAsync(

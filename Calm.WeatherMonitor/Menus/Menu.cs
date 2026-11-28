@@ -1,11 +1,12 @@
-﻿using Calm.WeatherMonitor.Classes.Menu.Layouts;
-using Calm.WeatherMonitor.Classes.Menu.States;
+﻿using Calm.WeatherMonitor.App.Views.Layouts;
+using Calm.WeatherMonitor.App.Menus.States;
+using Calm.WeatherMonitor.Core.Exceptions;
 using Calm.WeatherMonitor.Core.Results;
 using Calm.WeatherMonitor.Core.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Spectre.Console;
 
-namespace Calm.WeatherMonitor.Classes.Menu;
+
+namespace Calm.WeatherMonitor.App.Menus;
 
 public sealed class Menu
 {
@@ -369,10 +370,10 @@ public sealed class Menu
             SetImportError(
                 "A file error occurred during the import.");
         }
-        catch (DbUpdateException)
+        catch (ServiceOperationException exception)
         {
             SetImportError(
-                "The validated weather data could not be saved.");
+                exception.Message);
         }
         catch (Exception)
         {
@@ -430,10 +431,10 @@ public sealed class Menu
         {
             SetApiError(exception.Message);
         }
-        catch (DbUpdateException)
+        catch (ServiceOperationException exception)
         {
             SetApiError(
-                "The live weather measurement could not be saved.");
+                exception.Message);
         }
         catch (Exception)
         {

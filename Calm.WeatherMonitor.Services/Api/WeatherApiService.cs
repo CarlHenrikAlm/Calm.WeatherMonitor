@@ -1,4 +1,5 @@
 ﻿using Calm.WeatherMonitor.Core.Entities;
+using Calm.WeatherMonitor.Core.Exceptions;
 using Calm.WeatherMonitor.Core.Interfaces;
 using Calm.WeatherMonitor.Core.Results;
 using Calm.WeatherMonitor.Services.Data;
@@ -98,10 +99,19 @@ public sealed class WeatherApiService : IWeatherApiService
                 DataSource = "API"
             };
 
-            await dbContext.WeatherDataPoints.AddAsync(
-                dataPoint);
+            try
+            {
+                await dbContext.WeatherDataPoints.AddAsync(
+                    dataPoint);
 
-            await dbContext.SaveChangesAsync();
+                await dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception)
+            {
+                throw new ServiceOperationException(
+                    "The live weather measurement could not be saved.",
+                    exception);
+            }
         }
 
         return new ApiImportResult

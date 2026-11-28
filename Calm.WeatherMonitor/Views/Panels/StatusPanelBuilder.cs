@@ -1,9 +1,9 @@
-﻿using Calm.WeatherMonitor.Classes.Menu.Factory;
-using Calm.WeatherMonitor.Classes.Menu.States;
+﻿using Calm.WeatherMonitor.App.Menus.States;
+using Calm.WeatherMonitor.App.Views.Factory;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
-namespace Calm.WeatherMonitor.Classes.Menu.Panels;
+namespace Calm.WeatherMonitor.App.Views.Panels;
 
 public static class StatusPanelBuilder
 {

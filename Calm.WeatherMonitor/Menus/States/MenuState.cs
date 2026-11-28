@@ -1,6 +1,6 @@
 ﻿using Calm.WeatherMonitor.Core.Results;
 
-namespace Calm.WeatherMonitor.Classes.Menu.States;
+namespace Calm.WeatherMonitor.App.Menus.States;
 
 
 public class MenuState

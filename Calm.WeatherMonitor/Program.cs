@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ApplicationMenu =
-    Calm.WeatherMonitor.Classes.Menu.Menu;
+    Calm.WeatherMonitor.App.Menus.Menu;
 
 
 IConfiguration configuration =
