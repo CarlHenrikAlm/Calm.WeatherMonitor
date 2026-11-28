@@ -22,6 +22,9 @@ public class MenuState
 
     public int StatisticsPageIndex { get; set; }
 
+    public int StatisticsPageSize { get; set; }
+    = 3;
+
     public IReadOnlyList<string> StationNames { get; set; }
     = [];
 

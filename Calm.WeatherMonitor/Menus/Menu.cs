@@ -11,6 +11,9 @@ namespace Calm.WeatherMonitor.App.Menus;
 public sealed class Menu
 {
     private const int MenuItemCount = 4;
+    private const int MinimumStatisticsPageSize = 2;
+    private const int MaximumStatisticsPageSize = 20;
+    private const int ReservedStatisticsRows = 23;
 
     private readonly MenuState _state;
     private readonly IDatabaseStatusService _databaseStatusService;
@@ -94,11 +97,72 @@ public sealed class Menu
 
     private void Render()
     {
+        UpdateStatisticsPageSize();
+
         Layout dashboard =
             DashboardLayout.Build(_state);
 
         AnsiConsole.Clear();
         AnsiConsole.Write(dashboard);
+    }
+
+    private void UpdateStatisticsPageSize()
+    {
+        if (_state.Mode != MenuMode.Statistics
+            || _state.StatisticsResult is null)
+        {
+            return;
+        }
+
+        int availableRows =
+            Console.WindowHeight
+            - ReservedStatisticsRows;
+
+        _state.StatisticsPageSize =
+            Math.Clamp(
+                availableRows,
+                MinimumStatisticsPageSize,
+                MaximumStatisticsPageSize);
+
+        ClampStatisticsPageIndex();
+    }
+
+    private void ClampStatisticsPageIndex()
+    {
+        StationStatisticsResult? statistics =
+            _state.StatisticsResult;
+
+        if (statistics is null)
+        {
+            _state.StatisticsPageIndex = 0;
+
+            return;
+        }
+
+        int pageCount =
+            CalculateStatisticsPageCount(
+                statistics.MeasurementCount);
+
+        _state.StatisticsPageIndex =
+            Math.Clamp(
+                _state.StatisticsPageIndex,
+                0,
+                pageCount - 1);
+    }
+
+    private int CalculateStatisticsPageCount(
+    int measurementCount)
+    {
+        int pageSize =
+            Math.Max(
+                1,
+                _state.StatisticsPageSize);
+
+        return Math.Max(
+            1,
+            (int)Math.Ceiling(
+                measurementCount
+                / (double)pageSize));
     }
 
     private async Task HandleKeyAsync(ConsoleKey key)
@@ -251,13 +315,9 @@ public sealed class Menu
             return;
         }
 
-        const int measurementsPerPage = 8;
-
-        int pageCount = Math.Max(
-            1,
-            (int)Math.Ceiling(
-                statistics.MeasurementCount
-                / (double)measurementsPerPage));
+        int pageCount =
+            CalculateStatisticsPageCount(
+                statistics.MeasurementCount);
 
         _state.StatisticsPageIndex =
             Math.Clamp(

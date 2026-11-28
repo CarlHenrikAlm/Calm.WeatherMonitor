@@ -8,7 +8,6 @@ namespace Calm.WeatherMonitor.App.Views.Panels;
 
 public static class InformationPanelBuilder
 {
-    private const int MeasurementsPerPage = 8;
 
     public static Panel Build(MenuState state)
     {
@@ -24,7 +23,8 @@ public static class InformationPanelBuilder
                 when state.StatisticsResult is not null =>
                     BuildStatisticsContent(
                         state.StatisticsResult,
-                        state.StatisticsPageIndex),
+                        state.StatisticsPageIndex,
+                        state.StatisticsPageSize),
 
             _ =>
                 BuildDefaultContent(state)
@@ -122,10 +122,12 @@ public static class InformationPanelBuilder
 
     private static IRenderable BuildStatisticsContent(
         StationStatisticsResult statistics,
-        int requestedPageIndex)
+        int requestedPageIndex,
+        int pageSize)
     {
         int pageCount = CalculatePageCount(
-            statistics.MeasurementCount);
+            statistics.MeasurementCount,
+            pageSize);
 
         int pageIndex = Math.Clamp(
             requestedPageIndex,
@@ -138,28 +140,40 @@ public static class InformationPanelBuilder
         Table measurementTable =
             BuildMeasurementTable(
                 statistics,
-                pageIndex);
+                pageIndex,
+                pageSize);
 
-        return new Rows(
-            new Markup(
-                $"[bold deepskyblue1]" +
-                $"{Markup.Escape(statistics.StationName)}[/]"),
+        var body = new Rows(
+    new Markup(
+        $"[bold deepskyblue1]" +
+        $"{Markup.Escape(statistics.StationName)}[/]"),
 
-            Text.NewLine,
+    new Text(string.Empty),
 
-            summaryTable,
+    summaryTable,
 
-            Text.NewLine,
+    measurementTable);
 
-            measurementTable,
+        var footer = new Markup(
+            $"[dim]Page {pageIndex + 1} " +
+            $"of {pageCount}. " +
+            "Use Left/Right to change page. " +
+            "Press Enter to select another station.[/]");
 
-            Text.NewLine,
+        var contentLayout =
+            new Layout("StatisticsContent")
+                .SplitRows(
+                    new Layout("StatisticsBody"),
+                    new Layout("StatisticsFooter")
+                        .Size(1));
 
-            new Markup(
-                $"[dim]Page {pageIndex + 1} " +
-                $"of {pageCount}. " +
-                "Use Left/Right to change page. " +
-                "Press Enter to select another station.[/]"));
+        contentLayout["StatisticsBody"]
+            .Update(body);
+
+        contentLayout["StatisticsFooter"]
+            .Update(footer);
+
+        return contentLayout;
     }
 
     private static Table BuildSummaryTable(
@@ -197,7 +211,8 @@ public static class InformationPanelBuilder
 
     private static Table BuildMeasurementTable(
         StationStatisticsResult statistics,
-        int pageIndex)
+        int pageIndex,
+        int pageSize)
     {
         var table = new Table()
             .RoundedBorder()
@@ -223,8 +238,8 @@ public static class InformationPanelBuilder
         IEnumerable<WeatherMeasurementResult> page =
             statistics.Measurements
                 .Skip(
-                    pageIndex * MeasurementsPerPage)
-                .Take(MeasurementsPerPage);
+                    pageIndex * pageSize)
+                .Take(pageSize);
 
         foreach (
             WeatherMeasurementResult measurement
@@ -246,13 +261,17 @@ public static class InformationPanelBuilder
     }
 
     private static int CalculatePageCount(
-        int measurementCount)
+        int measurementCount,
+        int pageSize)
     {
+        int safePageSize =
+        Math.Max(1, pageSize);
+
         return Math.Max(
             1,
             (int)Math.Ceiling(
                 measurementCount
-                / (double)MeasurementsPerPage));
+                / (double)safePageSize));
     }
 
     private static (
