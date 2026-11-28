@@ -1,6 +1,6 @@
 ﻿using Calm.WeatherMonitor.Classes.Menu.Factory;
 using Calm.WeatherMonitor.Classes.Menu.States;
-using Calm.WeatherMonitor.Models.Results;
+using Calm.WeatherMonitor.Core.Results;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 

@@ -1,12 +1,9 @@
-﻿using Calm.WeatherMonitor.Services.Statistics;
-using Calm.WeatherMonitor.Data;
-using Calm.WeatherMonitor.Services;
-using Calm.WeatherMonitor.Services.Api;
-using Calm.WeatherMonitor.Services.FileImport;
-using Microsoft.EntityFrameworkCore;
+﻿using Calm.WeatherMonitor.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using ApplicationMenu =
     Calm.WeatherMonitor.Classes.Menu.Menu;
+
 
 IConfiguration configuration =
     new ConfigurationBuilder()
@@ -17,50 +14,27 @@ IConfiguration configuration =
             reloadOnChange: false)
         .Build();
 
-string connectionString =
-    configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException(
-        "Connection string 'DefaultConnection' was not found.");
+var services =
+    new ServiceCollection();
 
-var optionsBuilder =
-    new DbContextOptionsBuilder<WeatherDbContext>();
+services.AddWeatherMonitorServices(
+    configuration);
 
-optionsBuilder.UseSqlServer(connectionString);
+services.AddScoped<ApplicationMenu>();
 
-var databaseStatusService =
-    new DatabaseStatusService(
-        optionsBuilder.Options);
+using ServiceProvider serviceProvider =
+    services.BuildServiceProvider(
+        new ServiceProviderOptions
+        {
+            ValidateScopes = true,
+            ValidateOnBuild = true
+        });
 
-var badDataLogger =
-    new BadDataLogger();
+using IServiceScope scope =
+    serviceProvider.CreateScope();
 
-var fileImportService =
-    new FileImportService(
-        optionsBuilder.Options,
-        badDataLogger);
-
-using var httpClient = new HttpClient
-{
-    BaseAddress = new Uri(
-        "https://api.open-meteo.com/"),
-
-    Timeout = TimeSpan.FromSeconds(15)
-};
-
-var weatherApiService =
-    new WeatherApiService(
-        httpClient,
-        optionsBuilder.Options);
-
-var weatherStatisticsService =
-    new WeatherStatisticsService(
-        optionsBuilder.Options);
-
-var menu =
-    new ApplicationMenu(
-        databaseStatusService,
-        fileImportService,
-        weatherApiService,
-        weatherStatisticsService);
+ApplicationMenu menu =
+    scope.ServiceProvider
+        .GetRequiredService<ApplicationMenu>();
 
 await menu.RunAsync();

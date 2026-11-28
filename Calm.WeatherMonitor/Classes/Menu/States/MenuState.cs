@@ -1,4 +1,4 @@
-﻿using Calm.WeatherMonitor.Models.Results;
+﻿using Calm.WeatherMonitor.Core.Results;
 
 namespace Calm.WeatherMonitor.Classes.Menu.States;
 

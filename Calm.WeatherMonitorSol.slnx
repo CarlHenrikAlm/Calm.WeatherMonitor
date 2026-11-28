@@ -1,3 +1,5 @@
 <Solution>
-  <Project Path="Calm.WeatherMonitor/Calm.WeatherMonitor.csproj" />
+  <Project Path="Calm.WeatcherMonitor.Core/Calm.WeatherMonitor.Core.csproj" />
+  <Project Path="Calm.WeatherMonitor.Services/Calm.WeatherMonitor.Services.csproj" />
+  <Project Path="Calm.WeatherMonitor/Calm.WeatherMonitor.App.csproj" />
 </Solution>

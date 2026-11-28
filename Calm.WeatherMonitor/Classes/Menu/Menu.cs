@@ -1,10 +1,7 @@
 ﻿using Calm.WeatherMonitor.Classes.Menu.Layouts;
 using Calm.WeatherMonitor.Classes.Menu.States;
-using Calm.WeatherMonitor.Models.Results;
-using Calm.WeatherMonitor.Services;
-using Calm.WeatherMonitor.Services.Api;
-using Calm.WeatherMonitor.Services.FileImport;
-using Calm.WeatherMonitor.Services.Statistics;
+using Calm.WeatherMonitor.Core.Results;
+using Calm.WeatherMonitor.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Spectre.Console;
 
@@ -15,18 +12,18 @@ public sealed class Menu
     private const int MenuItemCount = 4;
 
     private readonly MenuState _state;
-    private readonly DatabaseStatusService _databaseStatusService;
-    private readonly FileImportService _fileImportService;
-    private readonly WeatherApiService _weatherApiService;
-    private readonly WeatherStatisticsService _weatherStatisticsService;
+    private readonly IDatabaseStatusService _databaseStatusService;
+    private readonly IFileImportService _fileImportService;
+    private readonly IWeatherApiService _weatherApiService;
+    private readonly IWeatherStatisticsService _weatherStatisticsService;
 
     private bool _isRunning = true;
 
     public Menu(
-        DatabaseStatusService databaseStatusService,
-        FileImportService fileImportService,
-        WeatherApiService weatherApiService,
-        WeatherStatisticsService weatherStatisticsService)
+        IDatabaseStatusService databaseStatusService,
+        IFileImportService fileImportService,
+        IWeatherApiService weatherApiService,
+        IWeatherStatisticsService weatherStatisticsService)
     {
         ArgumentNullException.ThrowIfNull(
             databaseStatusService);
